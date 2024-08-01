@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Q&A</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        header {
+            background-color: #343a40;
+            color: #fff;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .question {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .reply-form textarea {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            resize: none;
+        }
+
+        .answer {
+            background-color: #f9f9f9;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .vote-section {
+            margin-top: 10px;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Community Q&A</h1>
+    </header>
+
+    <div class="container">
+        <nav>
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" onclick="showPage('ask')">Ask Question</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showPage('faq')">Questions</a>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="askPage" style="display: none;">
+            <form id="questionForm">
+                <div class="form-group">
+                    <textarea id="questionText" rows="4" class="form-control"
+                        placeholder="Ask your question..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Ask</button>
+            </form>
+        </div>
+
+        <div id="faqPage" style="display: none;">
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search FAQs...">
+            </div>
+            <div id="faqAnswers"></div>
+        </div>
+    </div>
+
+    <script>
+        // Function to show the "Ask Question" or "FAQ" page based on user selection
+        function showPage(page) {
+            if (page === 'ask') {
+                document.getElementById('askPage').style.display = 'block';
+                document.getElementById('faqPage').style.display = 'none';
+            } else if (page === 'faq') {
+                showFaqPage();
+            }
+        }
+
+        // Function to display the FAQ page with questions and their replies
+        function showFaqPage() {
+            document.getElementById('askPage').style.display = 'none';
+            document.getElementById('faqPage').style.display = 'block';
+
+            var faqDiv = document.getElementById('faqAnswers');
+            faqDiv.innerHTML = ''; // Clear previous content
+
+            // Retrieve questions from local storage or initialize empty array
+            var questions = JSON.parse(localStorage.getItem('questions')) || [];
+
+            // Display each question along with replies
+            questions.forEach(function (question, index) {
+                var questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = '<h2>Question:</h2><p>' + question.text + '</p>';
+
+                var replyForm = document.createElement('div');
+                replyForm.className = 'reply-form';
+                replyForm.innerHTML = '<textarea class="reply-text form-control" placeholder="Type your reply..."></textarea>' +
+                    '<button class="btn btn-primary mt-2" onclick="replyToQuestion(' + index + ')">Reply</button>';
+                questionDiv.appendChild(replyForm);
+
+                // Display replies
+                question.replies.forEach(function (reply, replyIndex) {
+                    var replyDiv = document.createElement('div');
+                    replyDiv.className = 'answer';
+                    replyDiv.innerHTML = '<h3>Reply:</h3><p>' + reply.text + '</p>' +
+                        '<div class="vote-section">' +
+                        '<button class="btn btn-success mr-2" onclick="upvoteReply(' + index + ',' + replyIndex + ')">Upvote</button>' +
+                        '<button class="btn btn-danger" onclick="downvoteReply(' + index + ',' + replyIndex + ')">Downvote</button>' +
+                        '<span>' + reply.votes + ' votes</span>' +
+                        '</div>';
+                    questionDiv.appendChild(replyDiv);
+                });
+
+                faqDiv.appendChild(questionDiv);
+            });
+        }
+
+        // Function to upvote a reply
+        function upvoteReply(questionIndex, replyIndex) {
+            // Check if the user has already upvoted this reply
+            var userVotes = JSON.parse(localStorage.getItem('userVotes')) || {};
+            var replyKey = questionIndex + '-' + replyIndex;
+            if (!userVotes[replyKey]) {
+                userVotes[replyKey] = true; // Mark as upvoted
+                localStorage.setItem('userVotes', JSON.stringify(userVotes));
+
+                // Update reply votes in local storage
+                var questions = JSON.parse(localStorage.getItem('questions'));
+                questions[questionIndex].replies[replyIndex].votes++;
+                localStorage.setItem('questions', JSON.stringify(questions));
+
+                // Refresh the FAQ page to reflect the updated votes
+                showFaqPage();
+            } else {
+                alert('You have already upvoted this reply.');
+            }
+        }
+
+        // Function to downvote a reply
+        function downvoteReply(questionIndex, replyIndex) {
+            // Check if the user has already downvoted this reply
+            var userVotes = JSON.parse(localStorage.getItem('userVotes')) || {};
+            var replyKey = questionIndex + '-' + replyIndex;
+            if (!userVotes[replyKey]) {
+                userVotes[replyKey] = true; // Mark as downvoted
+                localStorage.setItem('userVotes', JSON.stringify(userVotes));
+
+                // Update reply votes in local storage
+                var questions = JSON.parse(localStorage.getItem('questions'));
+                questions[questionIndex].replies[replyIndex].votes--;
+                localStorage.setItem('questions', JSON.stringify(questions));
+
+                // Refresh the FAQ page to reflect the updated votes
+                showFaqPage();
+            } else {
+                alert('You have already downvoted this reply.');
+            }
+        }
+
+        // Function to handle reply submission
+        function replyToQuestion(index) {
+            var replyText = document.querySelectorAll('.reply-text')[index].value;
+            if (!replyText.trim()) {
+                alert("Please enter a reply.");
+                return;
+            }
+
+            // Add the reply to the corresponding question in local storage
+            var questions = JSON.parse(localStorage.getItem('questions')) || [];
+            questions[index].replies.push({ text: replyText, votes: 0 });
+            localStorage.setItem('questions', JSON.stringify(questions));
+
+            // Refresh the FAQ page to display the updated reply
+            showFaqPage();
+        }
+
+        // Function to handle form submission for asking a question
+        document.getElementById('questionForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            var questionText = document.getElementById('questionText').value;
+            if (!questionText.trim()) {
+                alert("Please enter a question.");
+                return;
+            }
+
+            // Add the question to local storage
+            var questions = JSON.parse(localStorage.getItem('questions')) || [];
+            questions.push({ text: questionText, votes: 0, replies: [] });
+            localStorage.setItem('questions', JSON.stringify(questions));
+
+            // Clear the input field
+            document.getElementById('questionText').value = '';
+
+            // Refresh the FAQ page to display the updated list of questions
+            showFaqPage();
+        });
+
+        // Function to handle search
+        document.getElementById('searchInput').addEventListener('input', function () {
+            var searchTerm = this.value.trim().toLowerCase();
+            var matchingQuestions = JSON.parse(localStorage.getItem('questions')) || [];
+            matchingQuestions = matchingQuestions.filter(function (question) {
+                return question.text.toLowerCase().includes(searchTerm);
+            });
+            showSearchResults(matchingQuestions);
+        });
+
+        // Function to display search results
+        function showSearchResults(questions) {
+            var faqDiv = document.getElementById('faqAnswers');
+            faqDiv.innerHTML = ''; // Clear previous content
+
+            // Display each matching question
+            questions.forEach(function (question, index) {
+                var questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = '<h2>Question:</h2><p>' + question.text + '</p>';
+
+                var replyForm = document.createElement('div');
+                replyForm.className = 'reply-form';
+                replyForm.innerHTML = '<textarea class="reply-text form-control" placeholder="Type your reply..."></textarea>' +
+                    '<button class="btn btn-primary mt-2" onclick="replyToQuestion(' + index + ')">Reply</button>';
+                questionDiv.appendChild(replyForm);
+
+                // Display replies
+                question.replies.forEach(function (reply, replyIndex) {
+                    var replyDiv = document.createElement('div');
+                    replyDiv.className = 'answer';
+                    replyDiv.innerHTML = '<h3>Reply:</h3><p>' + reply.text + '</p>' +
+                        '<div class="vote-section">' +
+                        '<button class="btn btn-success mr-2" onclick="upvoteReply(' + index + ',' + replyIndex + ')">Upvote</button>' +
+                        '<button class="btn btn-danger" onclick="downvoteReply(' + index + ',' + replyIndex + ')">Downvote</button>' +
+                        '<span>' + reply.votes + ' votes</span>' +
+                        '</div>';
+                    questionDiv.appendChild(replyDiv);
+                });
+
+                faqDiv.appendChild(questionDiv);
+            });
+        }
+
+        // Initial FAQs with answers (empty for now)
+        if (!localStorage.getItem('questions')) {
+            localStorage.setItem('questions', JSON.stringify([]));
+        }
+
+        // Display FAQ page initially
+        showPage('ask');
+    </script>
+
+</body>
+
+</html>
